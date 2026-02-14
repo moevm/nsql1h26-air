@@ -25,9 +25,9 @@
 | Задача                   | Исполнители                  |
 |--------------------------|------------------------------|
 | teamlead                 | saicooo                      |
-| frontend                 |     -                        |
-| backend                  |     -                        |
-| DevOps                   |     -                        |
+| frontend                 | kakiraumar                   |
+| backend                  | faroukbelaid9                |
+| DevOps                   | saicooo                      |
 
 
 
