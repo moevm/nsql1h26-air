@@ -1,0 +1,13 @@
+{
+  "name": "hello-world-arangodb",
+  "version": "1.0.0",
+  "description": "Simple example for connecting to ArangoDB",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "arangojs": "^8.5.0",
+    "dotenv": "^16.3.1"
+  }
+}
