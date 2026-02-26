@@ -17,26 +17,4 @@
 
 <a href=" ./../../../actions/workflows/7_app_is_ready.yml" >![7. App is ready]( ./../../actions/workflows/7_app_is_ready.yml/badge.svg)</a>
 
-# breathing-exercises-app
 
-
-
-### Распределение ролей
-| Задача                   | Исполнители                  |
-|--------------------------|------------------------------|
-| teamlead                 | saicooo                      |
-| frontend                 | kakiraumar                   |
-| backend                  | faroukbelaid9                |
-| DevOps                   | saicooo                      |
-
-
-
-### План разработки
-| Дата:    | Этап работы                               |
-|---------:|---------------------------                |
-| 19.02 Th | Согласована и сформулирована тема курсовой|
-| 05.03 Th | Usecase                                   |
-| 07.04 Tu | Модель данных                             |
-| 21.04 Tu | Прототип хранение и представление         |
-| 14.05 Th | Прототип анализ                           |
-| 21.05 Th | Пояснительная записка & app is ready      |
