@@ -144,9 +144,6 @@ export function LoginPage() {
           </form>
 
           <div className="mt-6 p-4 bg-blue-50 rounded-md">
-            <p className="text-sm font-medium text-blue-900 mb-2">Test Accounts:</p>
-            <p className="text-xs text-blue-700">Admin: admin / admin123</p>
-            <p className="text-xs text-blue-700">User: john_doe / user123</p>
           </div>
         </div>
       </div>
