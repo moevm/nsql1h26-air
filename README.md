@@ -25,8 +25,8 @@
 
 1. Clone the repository:
    ```bash
-   git clone <repository-url>
-   cd project
+   git clone <[repository-url](https://github.com/moevm/nsql1h26-air.git)>
+   cd nsql1h26-air
    ```
 
 2. Build and start the application:
