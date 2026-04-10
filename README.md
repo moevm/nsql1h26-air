@@ -18,3 +18,34 @@
 <a href=" ./../../../actions/workflows/7_app_is_ready.yml" >![7. App is ready]( ./../../actions/workflows/7_app_is_ready.yml/badge.svg)</a>
 
 
+
+
+
+## Installation & Running
+
+1. Clone the repository:
+   ```bash
+   git clone <repository-url>
+   cd project
+   ```
+
+2. Build and start the application:
+   ```bash
+   docker compose build --no-cache && docker compose up
+   ```
+
+3. Access the application:
+   - Web Interface: http://localhost:5173
+   - API: http://localhost:3001
+
+## Test Accounts
+
+The application comes pre-loaded with test data including the following accounts:
+
+### Admin Account
+- **Username**: `admin`
+- **Password**: `admin123`
+
+### User Accounts
+- **Username**: `john_doe` | **Password**: `user123`
+- **Username**: `jane_smith` | **Password**: `user123`
