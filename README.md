@@ -40,7 +40,6 @@
 
 ## Test Accounts
 
-The application comes pre-loaded with test data including the following accounts:
 
 ### Admin Account
 - **Username**: `admin`
