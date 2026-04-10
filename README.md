@@ -25,7 +25,7 @@
 
 1. Clone the repository:
    ```bash
-   git clone <https://github.com/moevm/nsql1h26-air.git)>
+   git clone https://github.com/moevm/nsql1h26-air.git
    cd nsql1h26-air
    ```
 
