@@ -16,20 +16,13 @@ class HttpError extends Error {
 
 const createHttpError = (statusCode, message) => new HttpError(statusCode, message);
 
-const withErrorHandling = (handler, { defaultMessage = 'Request failed', logMessage } = {}) => async (req, res, next) => {
-  try {
-    await handler(req, res, next);
-  } catch (error) {
-    if (error instanceof HttpError) {
-      return next(error);
-    }
+const asyncHandler = (handler) => (req, res, next) => {
+  Promise.resolve(handler(req, res, next)).catch(next);
+};
 
-    if (logMessage) {
-      console.error(logMessage, error);
-    }
-
-    return next(createHttpError(500, defaultMessage));
-  }
+const withRouteContext = (context) => (req, res, next) => {
+  req.errorContext = context;
+  next();
 };
 
 const requireRole = (role, message = 'Access denied') => (req, res, next) => {
@@ -104,7 +97,7 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
-router.post('/auth/register', withErrorHandling(async (req, res) => {
+router.post('/auth/register', withRouteContext({ defaultMessage: 'Registration failed' }), asyncHandler(async (req, res) => {
   const { username, email, password, firstName, lastName } = req.body;
 
   if (!username || !email || !password) {
@@ -137,11 +130,9 @@ router.post('/auth/register', withErrorHandling(async (req, res) => {
   const token = jwt.sign({ id: result._key, username, email, role: 'user' }, JWT_SECRET, { expiresIn: '7d' });
 
   res.json({ token, user: { id: result._key, username, email, role: 'user' } });
-}, {
-  defaultMessage: 'Registration failed'
 }));
 
-router.post('/auth/login', withErrorHandling(async (req, res) => {
+router.post('/auth/login', withRouteContext({ defaultMessage: 'Login failed', logMessage: 'Login error:' }), asyncHandler(async (req, res) => {
   const { username, password } = req.body;
 
   const cursor = await db.query(aql`
@@ -179,12 +170,9 @@ router.post('/auth/login', withErrorHandling(async (req, res) => {
       lastName: user.lastName
     }
   });
-}, {
-  defaultMessage: 'Login failed',
-  logMessage: 'Login error:'
 }));
 
-router.get('/exercises', withErrorHandling(async (req, res) => {
+router.get('/exercises', withRouteContext({ defaultMessage: 'Failed to fetch exercises', logMessage: 'Error fetching exercises:' }), asyncHandler(async (req, res) => {
   const {
     page = 1,
     limit = 10,
@@ -236,12 +224,9 @@ router.get('/exercises', withErrorHandling(async (req, res) => {
       pages: Math.ceil((total || 0) / parseInt(limit))
     }
   });
-}, {
-  defaultMessage: 'Failed to fetch exercises',
-  logMessage: 'Error fetching exercises:'
 }));
 
-router.get('/exercises/:id', withErrorHandling(async (req, res) => {
+router.get('/exercises/:id', withRouteContext({ defaultMessage: 'Failed to fetch exercise' }), asyncHandler(async (req, res) => {
   const exercises = db.collection('exercises');
 
   let exercise;
@@ -257,11 +242,9 @@ router.get('/exercises/:id', withErrorHandling(async (req, res) => {
 
   const phases = Array.isArray(exercise.phases) ? sortPhasesByOrder(exercise.phases) : [];
   res.json({ ...exercise, phases });
-}, {
-  defaultMessage: 'Failed to fetch exercise'
 }));
 
-router.post('/exercises', authenticateToken, requireAdmin, withErrorHandling(async (req, res) => {
+router.post('/exercises', authenticateToken, requireAdmin, withRouteContext({ defaultMessage: 'Failed to create exercise', logMessage: 'Error creating exercise:' }), asyncHandler(async (req, res) => {
   const { title, description, category, difficulty, duration, imageUrl, phases } = req.body;
   const normalizedPhases = Array.isArray(phases)
     ? phases.map((phase, index) => ({
@@ -284,12 +267,9 @@ router.post('/exercises', authenticateToken, requireAdmin, withErrorHandling(asy
   });
 
   res.status(201).json({ id: result._key, ...req.body });
-}, {
-  defaultMessage: 'Failed to create exercise',
-  logMessage: 'Error creating exercise:'
 }));
 
-router.put('/exercises/:id', authenticateToken, requireAdmin, withErrorHandling(async (req, res) => {
+router.put('/exercises/:id', authenticateToken, requireAdmin, withRouteContext({ defaultMessage: 'Failed to update exercise' }), asyncHandler(async (req, res) => {
   const { title, description, category, difficulty, duration, imageUrl, phases } = req.body;
   const normalizedPhases = Array.isArray(phases)
     ? phases.map((phase, index) => ({
@@ -321,11 +301,9 @@ router.put('/exercises/:id', authenticateToken, requireAdmin, withErrorHandling(
   }
 
   res.json(updated.new);
-}, {
-  defaultMessage: 'Failed to update exercise'
 }));
 
-router.delete('/exercises/:id', authenticateToken, requireAdmin, withErrorHandling(async (req, res) => {
+router.delete('/exercises/:id', authenticateToken, requireAdmin, withRouteContext({ defaultMessage: 'Failed to delete exercise' }), asyncHandler(async (req, res) => {
   const exercises = db.collection('exercises');
 
   try {
@@ -339,11 +317,9 @@ router.delete('/exercises/:id', authenticateToken, requireAdmin, withErrorHandli
   }
 
   res.json({ message: 'Exercise deleted successfully' });
-}, {
-  defaultMessage: 'Failed to delete exercise'
 }));
 
-router.get('/comments', withErrorHandling(async (req, res) => {
+router.get('/comments', withRouteContext({ defaultMessage: 'Failed to fetch comments', logMessage: 'Error fetching comments:' }), asyncHandler(async (req, res) => {
   const { exerciseId, page = 1, limit = 20 } = req.query;
   const offset = (parseInt(page) - 1) * parseInt(limit);
 
@@ -360,12 +336,9 @@ router.get('/comments', withErrorHandling(async (req, res) => {
 
   const comments = await cursor.all();
   res.json({ comments });
-}, {
-  defaultMessage: 'Failed to fetch comments',
-  logMessage: 'Error fetching comments:'
 }));
 
-router.post('/comments', authenticateToken, withErrorHandling(async (req, res) => {
+router.post('/comments', authenticateToken, withRouteContext({ defaultMessage: 'Failed to create comment' }), asyncHandler(async (req, res) => {
   const { exerciseId, text } = req.body;
 
   const comments = db.collection('comments');
@@ -378,11 +351,9 @@ router.post('/comments', authenticateToken, withErrorHandling(async (req, res) =
   });
 
   res.status(201).json({ id: result._key, ...req.body, userId: req.user.id });
-}, {
-  defaultMessage: 'Failed to create comment'
 }));
 
-router.get('/reviews', withErrorHandling(async (req, res) => {
+router.get('/reviews', withRouteContext({ defaultMessage: 'Failed to fetch reviews', logMessage: 'Error fetching reviews:' }), asyncHandler(async (req, res) => {
   const { exerciseId, page = 1, limit = 20 } = req.query;
   const offset = (parseInt(page) - 1) * parseInt(limit);
 
@@ -399,12 +370,9 @@ router.get('/reviews', withErrorHandling(async (req, res) => {
 
   const reviews = await cursor.all();
   res.json({ reviews });
-}, {
-  defaultMessage: 'Failed to fetch reviews',
-  logMessage: 'Error fetching reviews:'
 }));
 
-router.post('/reviews', authenticateToken, withErrorHandling(async (req, res) => {
+router.post('/reviews', authenticateToken, withRouteContext({ defaultMessage: 'Failed to create review' }), asyncHandler(async (req, res) => {
   const { exerciseId, rating, text } = req.body;
 
   const reviews = db.collection('reviews');
@@ -428,11 +396,9 @@ router.post('/reviews', authenticateToken, withErrorHandling(async (req, res) =>
   }
 
   res.status(201).json({ id: result._key, ...req.body, userId: req.user.id });
-}, {
-  defaultMessage: 'Failed to create review'
 }));
 
-router.get('/users', authenticateToken, requireAdmin, withErrorHandling(async (req, res) => {
+router.get('/users', authenticateToken, requireAdmin, withRouteContext({ defaultMessage: 'Failed to fetch users', logMessage: 'Error fetching users:' }), asyncHandler(async (req, res) => {
   const {
     page = 1,
     limit = 10,
@@ -493,12 +459,9 @@ router.get('/users', authenticateToken, requireAdmin, withErrorHandling(async (r
       pages: Math.ceil((total || 0) / parseInt(limit))
     }
   });
-}, {
-  defaultMessage: 'Failed to fetch users',
-  logMessage: 'Error fetching users:'
 }));
 
-router.get('/users/:id', authenticateToken, requireAdminOrSelf, withErrorHandling(async (req, res) => {
+router.get('/users/:id', authenticateToken, requireAdminOrSelf, withRouteContext({ defaultMessage: 'Failed to fetch user' }), asyncHandler(async (req, res) => {
   const users = db.collection('users');
 
   let user;
@@ -514,11 +477,9 @@ router.get('/users/:id', authenticateToken, requireAdminOrSelf, withErrorHandlin
 
   const { password, ...userWithoutPassword } = user;
   res.json({ ...userWithoutPassword, id: user._key });
-}, {
-  defaultMessage: 'Failed to fetch user'
 }));
 
-router.post('/sessions', authenticateToken, withErrorHandling(async (req, res) => {
+router.post('/sessions', authenticateToken, withRouteContext({ defaultMessage: 'Failed to create session' }), asyncHandler(async (req, res) => {
   const { exerciseId, duration, completed } = req.body;
 
   const sessions = db.collection('user_sessions');
@@ -531,11 +492,9 @@ router.post('/sessions', authenticateToken, withErrorHandling(async (req, res) =
   });
 
   res.status(201).json({ id: result._key, ...req.body });
-}, {
-  defaultMessage: 'Failed to create session'
 }));
 
-router.get('/statistics', authenticateToken, withErrorHandling(async (req, res) => {
+router.get('/statistics', authenticateToken, withRouteContext({ defaultMessage: 'Failed to fetch statistics', logMessage: 'Error fetching statistics:' }), asyncHandler(async (req, res) => {
   const {
     groupByX,
     groupByY,
@@ -622,12 +581,9 @@ router.get('/statistics', authenticateToken, withErrorHandling(async (req, res) 
   const statistics = await cursor.all();
 
   res.json({ statistics });
-}, {
-  defaultMessage: 'Failed to fetch statistics',
-  logMessage: 'Error fetching statistics:'
 }));
 
-router.get('/export', authenticateToken, requireAdmin, withErrorHandling(async (req, res) => {
+router.get('/export', authenticateToken, requireAdmin, withRouteContext({ defaultMessage: 'Failed to export data', logMessage: 'Error exporting data:' }), asyncHandler(async (req, res) => {
   const collections = ['users', 'exercises', 'comments', 'reviews', 'user_sessions'];
   const data = {};
 
@@ -645,12 +601,9 @@ router.get('/export', authenticateToken, requireAdmin, withErrorHandling(async (
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Content-Disposition', 'attachment; filename=breathing_exercises_export.json');
   res.json(data);
-}, {
-  defaultMessage: 'Failed to export data',
-  logMessage: 'Error exporting data:'
 }));
 
-router.post('/import', authenticateToken, requireAdmin, withErrorHandling(async (req, res) => {
+router.post('/import', authenticateToken, requireAdmin, withRouteContext({ defaultMessage: 'Failed to import data', logMessage: 'Error importing data:' }), asyncHandler(async (req, res) => {
   const data = req.body;
   const collections = ['users', 'exercises', 'comments', 'reviews', 'user_sessions'];
   const edges = ['user_favorites'];
@@ -664,9 +617,6 @@ router.post('/import', authenticateToken, requireAdmin, withErrorHandling(async 
   });
 
   res.json({ message: 'Data imported successfully' });
-}, {
-  defaultMessage: 'Failed to import data',
-  logMessage: 'Error importing data:'
 }));
 
 router.use((error, req, res, next) => {
@@ -674,10 +624,21 @@ router.use((error, req, res, next) => {
     return next(error);
   }
 
-  const statusCode = Number.isInteger(error.statusCode) ? error.statusCode : 500;
-  const message = typeof error.message === 'string' && error.message.length > 0
-    ? error.message
+  const context = req.errorContext ?? {};
+  const fallbackMessage = typeof context.defaultMessage === 'string' && context.defaultMessage.length > 0
+    ? context.defaultMessage
     : 'Request failed';
+
+  if (!(error instanceof HttpError) && context.logMessage) {
+    console.error(context.logMessage, error);
+  }
+
+  const statusCode = error instanceof HttpError && Number.isInteger(error.statusCode)
+    ? error.statusCode
+    : 500;
+  const message = error instanceof HttpError && typeof error.message === 'string' && error.message.length > 0
+    ? error.message
+    : fallbackMessage;
 
   return res.status(statusCode).json({ error: message });
 });
