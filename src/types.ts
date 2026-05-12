@@ -24,6 +24,10 @@ export interface Exercise {
   phases?: Phase[];
 }
 
+export interface FavoriteExercise extends Exercise {
+  favoriteId: string;
+}
+
 export interface Phase {
   _key?: string;
   name: string;
