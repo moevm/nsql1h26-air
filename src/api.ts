@@ -1,4 +1,4 @@
-import { Exercise, Comment, Review, User, UserSession, PaginationInfo } from './types';
+import { Exercise, Comment, Review, User, UserSession, PaginationInfo, FavoriteExercise } from './types';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -123,7 +123,7 @@ class ApiClient {
     const params = new URLSearchParams({ page: page.toString(), limit: limit.toString() });
     if (exerciseId) params.append('exerciseId', exerciseId);
 
-    return this.request<{ comments: Comment[] }>(`/comments?${params.toString()}`);
+    return this.request<{ comments: Comment[]; pagination: PaginationInfo }>(`/comments?${params.toString()}`);
   }
 
   async createComment(exerciseId: string, text: string) {
@@ -137,7 +137,25 @@ class ApiClient {
     const params = new URLSearchParams({ page: page.toString(), limit: limit.toString() });
     if (exerciseId) params.append('exerciseId', exerciseId);
 
-    return this.request<{ reviews: Review[] }>(`/reviews?${params.toString()}`);
+    return this.request<{ reviews: Review[]; pagination: PaginationInfo }>(`/reviews?${params.toString()}`);
+  }
+
+  async getFavorites(page = 1, limit = 20) {
+    const params = new URLSearchParams({ page: page.toString(), limit: limit.toString() });
+    return this.request<{ favorites: FavoriteExercise[]; pagination: PaginationInfo }>(`/favorites?${params.toString()}`);
+  }
+
+  async addFavorite(exerciseId: string) {
+    return this.request<{ message: string; exerciseId: string }>('/favorites', {
+      method: 'POST',
+      body: JSON.stringify({ exerciseId }),
+    });
+  }
+
+  async removeFavorite(exerciseId: string) {
+    return this.request<{ message: string; exerciseId: string }>(`/favorites/${exerciseId}`, {
+      method: 'DELETE',
+    });
   }
 
   async createReview(exerciseId: string, rating: number, text: string) {
