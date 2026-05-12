@@ -94,6 +94,11 @@ async function createIndexes() {
   await reviews.ensureIndex({ type: 'persistent', fields: ['exerciseId'] });
   await reviews.ensureIndex({ type: 'persistent', fields: ['userId'] });
   await reviews.ensureIndex({ type: 'persistent', fields: ['exerciseId', 'userId'], unique: true });
+
+  const userFavorites = db.collection('user_favorites');
+  await userFavorites.ensureIndex({ type: 'persistent', fields: ['_from'] });
+  await userFavorites.ensureIndex({ type: 'persistent', fields: ['_to'] });
+  await userFavorites.ensureIndex({ type: 'persistent', fields: ['_from', '_to'], unique: true });
 }
 
 export default db;
