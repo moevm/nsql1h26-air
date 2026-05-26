@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { api } from '../api';
 import { User, PaginationInfo } from '../types';
 import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -31,19 +31,24 @@ export function UsersPage({ onNavigate }: UsersPageProps) {
   const debouncedEmail = useDebouncedValue(filters.email, 500);
   const debouncedFirstName = useDebouncedValue(filters.firstName, 500);
   const debouncedLastName = useDebouncedValue(filters.lastName, 500);
+  const paginationPageRef = useRef(pagination.page);
+
+  useEffect(() => {
+    paginationPageRef.current = pagination.page;
+  }, [pagination.page]);
 
   useEffect(() => {
     fetchUsers();
   }, [pagination.page]);
 
   useEffect(() => {
-    if (pagination.page === 1) {
+    if (paginationPageRef.current === 1) {
       fetchUsers();
       return;
     }
 
     setPagination((prev) => ({ ...prev, page: 1 }));
-  }, [debouncedUsername, debouncedEmail, debouncedFirstName, debouncedLastName, pagination.page]);
+  }, [debouncedUsername, debouncedEmail, debouncedFirstName, debouncedLastName]);
 
   const fetchUsers = async () => {
     setLoading(true);

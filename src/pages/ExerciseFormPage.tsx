@@ -22,6 +22,8 @@ export function ExerciseFormPage({ exerciseId, onNavigate }: ExerciseFormPagePro
   const [phases, setPhases] = useState<Phase[]>([
     { name: 'Inhale', duration: 4, instruction: 'Breathe in slowly', color: '#3b82f6' },
   ]);
+    const getErrorMessage = (error: unknown, fallback: string) =>
+    error instanceof Error && error.message ? error.message : fallback;
 
   useEffect(() => {
     if (exerciseId) {
@@ -47,7 +49,7 @@ export function ExerciseFormPage({ exerciseId, onNavigate }: ExerciseFormPagePro
         setPhases(exercise.phases);
       }
     } catch (error) {
-      alert('Failed to load exercise');
+      alert(getErrorMessage(error, 'Failed to load exercise'));
     }
   };
 
@@ -63,7 +65,7 @@ export function ExerciseFormPage({ exerciseId, onNavigate }: ExerciseFormPagePro
       }
       onNavigate('exercises');
     } catch (error) {
-      alert(`Failed to ${exerciseId ? 'update' : 'create'} exercise`);
+      alert(getErrorMessage(error, `Failed to ${exerciseId ? 'update' : 'create'} exercise`));
     } finally {
       setLoading(false);
     }

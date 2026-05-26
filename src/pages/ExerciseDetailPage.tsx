@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api';
-import { Exercise, Comment, Review } from '../types';
+import { Exercise, Comment, Review, PaginationInfo } from '../types';
 import { useAuth } from '../contexts/AuthContext';
-import { ArrowLeft, Star, MessageCircle, Play, Pause, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Star, MessageCircle, Play, Pause, RotateCcw, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface ExerciseDetailPageProps {
   exerciseId: string;
@@ -14,6 +14,18 @@ export function ExerciseDetailPage({ exerciseId, onNavigate }: ExerciseDetailPag
   const [exercise, setExercise] = useState<Exercise | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
+  const [commentPagination, setCommentPagination] = useState<PaginationInfo>({
+    page: 1,
+    limit: 10,
+    total: 0,
+    pages: 0,
+  });
+  const [reviewPagination, setReviewPagination] = useState<PaginationInfo>({
+    page: 1,
+    limit: 10,
+    total: 0,
+    pages: 0,
+  });
   const [loading, setLoading] = useState(true);
 
   const [isPlaying, setIsPlaying] = useState(false);
@@ -23,6 +35,9 @@ export function ExerciseDetailPage({ exerciseId, onNavigate }: ExerciseDetailPag
 
   const [newComment, setNewComment] = useState('');
   const [newReview, setNewReview] = useState({ rating: 5, text: '' });
+
+  const getErrorMessage = (error: unknown, fallback: string) =>
+    error instanceof Error && error.message ? error.message : fallback;
 
   useEffect(() => {
     fetchExerciseData();
@@ -54,20 +69,43 @@ export function ExerciseDetailPage({ exerciseId, onNavigate }: ExerciseDetailPag
   }, [isPlaying, currentPhaseIndex, exercise]);
 
   const fetchExerciseData = async () => {
+     setLoading(true);
     try {
       const [exerciseData, commentsData, reviewsData] = await Promise.all([
         api.getExercise(exerciseId),
-        api.getComments(exerciseId),
-        api.getReviews(exerciseId),
+        api.getComments(exerciseId, 1, commentPagination.limit),
+        api.getReviews(exerciseId, 1, reviewPagination.limit),
       ]);
 
       setExercise(exerciseData);
       setComments(commentsData.comments);
+      setCommentPagination(commentsData.pagination);
       setReviews(reviewsData.reviews);
+      setReviewPagination(reviewsData.pagination);
     } catch (error) {
       console.error('Failed to fetch exercise data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+  
+    const fetchComments = async (page: number) => {
+    try {
+      const data = await api.getComments(exerciseId, page, commentPagination.limit);
+      setComments(data.comments);
+      setCommentPagination(data.pagination);
+    } catch (error) {
+      console.error('Failed to fetch comments:', error);
+    }
+  };
+
+  const fetchReviews = async (page: number) => {
+    try {
+      const data = await api.getReviews(exerciseId, page, reviewPagination.limit);
+      setReviews(data.reviews);
+      setReviewPagination(data.pagination);
+    } catch (error) {
+      console.error('Failed to fetch reviews:', error);
     }
   };
 
@@ -103,10 +141,10 @@ export function ExerciseDetailPage({ exerciseId, onNavigate }: ExerciseDetailPag
     try {
       await api.createComment(exerciseId, newComment);
       setNewComment('');
-      const { comments } = await api.getComments(exerciseId);
-      setComments(comments);
+      await fetchComments(1);
+
     } catch (error) {
-      alert('Failed to add comment');
+      alert(getErrorMessage(error, 'Failed to add comment'));
     }
   };
 
@@ -117,10 +155,9 @@ export function ExerciseDetailPage({ exerciseId, onNavigate }: ExerciseDetailPag
     try {
       await api.createReview(exerciseId, newReview.rating, newReview.text);
       setNewReview({ rating: 5, text: '' });
-      const { reviews } = await api.getReviews(exerciseId);
-      setReviews(reviews);
+      await fetchReviews(1);
     } catch (error) {
-      alert('Failed to add review');
+      alert(getErrorMessage(error, 'Failed to add review'));
     }
   };
 
@@ -335,6 +372,32 @@ export function ExerciseDetailPage({ exerciseId, onNavigate }: ExerciseDetailPag
               </div>
             ))}
           </div>
+           {reviewPagination.pages > 1 && (
+            <div className="flex justify-center items-center space-x-4 mt-4">
+              <button
+                onClick={() => fetchReviews(reviewPagination.page - 1)}
+                disabled={reviewPagination.page === 1}
+                className="flex items-center space-x-1 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                <span>Previous</span>
+              </button>
+
+              <span className="text-sm text-gray-700">
+                Page {reviewPagination.page} of {reviewPagination.pages}
+              </span>
+
+              <button
+                onClick={() => fetchReviews(reviewPagination.page + 1)}
+                disabled={reviewPagination.page === reviewPagination.pages}
+                className="flex items-center space-x-1 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <span>Next</span>
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+          
         </div>
 
         <div className="bg-white rounded-lg shadow p-6">
@@ -375,6 +438,31 @@ export function ExerciseDetailPage({ exerciseId, onNavigate }: ExerciseDetailPag
               </div>
             ))}
           </div>
+            {commentPagination.pages > 1 && (
+            <div className="flex justify-center items-center space-x-4 mt-4">
+              <button
+                onClick={() => fetchComments(commentPagination.page - 1)}
+                disabled={commentPagination.page === 1}
+                className="flex items-center space-x-1 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                <span>Previous</span>
+              </button>
+
+              <span className="text-sm text-gray-700">
+                Page {commentPagination.page} of {commentPagination.pages}
+              </span>
+
+              <button
+                onClick={() => fetchComments(commentPagination.page + 1)}
+                disabled={commentPagination.page === commentPagination.pages}
+                className="flex items-center space-x-1 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <span>Next</span>
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

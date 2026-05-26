@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { api } from '../api';
 import { Exercise, PaginationInfo } from '../types';
 import { useAuth } from '../contexts/AuthContext';
@@ -26,6 +26,11 @@ export function ExercisesPage({ onNavigate }: ExercisesPageProps) {
     difficulty: '',
   });
   const debouncedTitle = useDebouncedValue(filters.title, 500);
+  const paginationPageRef = useRef(pagination.page);
+
+  useEffect(() => {
+    paginationPageRef.current = pagination.page;
+  }, [pagination.page]);
 
   const fetchExercises = async () => {
     setLoading(true);
@@ -49,13 +54,13 @@ export function ExercisesPage({ onNavigate }: ExercisesPageProps) {
   }, [pagination.page]);
 
   useEffect(() => {
-    if (pagination.page === 1) {
+    if (paginationPageRef.current === 1) {
       fetchExercises();
       return;
     }
 
     setPagination((prev) => ({ ...prev, page: 1 }));
-  }, [debouncedTitle, pagination.page]);
+  }, [debouncedTitle, filters.category, filters.difficulty]);
 
   const handleSearch = () => {
     if (pagination.page === 1) {
